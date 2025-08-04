@@ -1,22 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import { NewspostsService } from '../services/NewspostsService';
-import { NewsGenre } from '../types/types';
-import type { PostQueryParams, PostCreateRequest, PostUpdateRequest } from '../types/types';
-
-const newspostsService = new NewspostsService();
+import { PostsService } from '../services/postsService';
+import { AuthenticatedRequest } from '../helpers/auth';
+import { PostCreateRequest, PostUpdateRequest } from '../types/types';
 
 export const getNewsPosts = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
         const page = parseInt(req.query.page as string) || 0;
         const size = parseInt(req.query.size as string) || 10;
-        const genre = req.query.genre as NewsGenre | undefined;
-
-        const params: PostQueryParams = { page, size };
-        if (genre && Object.values(NewsGenre).includes(genre)) {
-            params.genre = genre;
+        let category = req.query.category as string | undefined;
+        if (category && category === 'All Genres') {
+            category = undefined;
         }
+        
+        const authReq = req as AuthenticatedRequest;
+        const userId = authReq.user?.id;
 
-        const posts = await newspostsService.getAll(params);
+        const posts = await PostsService.getAllPosts(page, size, category, userId);
 
         return res.status(200).json(posts);
     } catch (error) {
@@ -26,44 +25,52 @@ export const getNewsPosts = async (req: Request, res: Response, next: NextFuncti
 
 export const getSinglePost = async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-            throw new Error('Invalid post ID - must be a number');
+        const id = req.params.id;
+        if (!id) {
+            return res.status(400).json({ error: 'Post ID is required' });
         }
 
-        const post = await newspostsService.getById(id);
+        const authReq = req as AuthenticatedRequest;
+        const userId = authReq.user?.id;
 
-        if (!post) {
-            return res.status(404).json({ message: 'Post not found' });
-        }
-
+        const post = await PostsService.getPostById(id, userId);
         return res.status(200).json(post);
     } catch (error) {
         next(error);
     }
 };
 
-export const createPost = async (req: Request<{}, {}, PostCreateRequest>, res: Response, next: NextFunction): Promise<Response | void> => {
+export const createPost = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
-        const newPost = await newspostsService.create(req.body);
+        debugger;
+        const authReq = req as AuthenticatedRequest;
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        const postData: PostCreateRequest = req.body;
+        const newPost = await PostsService.createPost(postData, authReq.user.id);
+
         return res.status(201).json(newPost);
     } catch (error) {
         next(error);
     }
 };
 
-export const updatePost = async (req: Request<{ id: string }, {}, PostUpdateRequest>, res: Response, next: NextFunction): Promise<Response | void> => {
+export const updatePost = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-            throw new Error('Invalid post ID - must be a number');
+        const authReq = req as AuthenticatedRequest;
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
         }
 
-        const updatedPost = await newspostsService.update(id, req.body);
-
-        if (!updatedPost) {
-            return res.status(404).json({ message: 'Post not found' });
+        const id = req.params.id;
+        if (!id) {
+            return res.status(400).json({ error: 'Post ID is required' });
         }
+
+        const postData: PostUpdateRequest = req.body;
+        const updatedPost = await PostsService.updatePost(id, postData, authReq.user.id);
 
         return res.status(200).json(updatedPost);
     } catch (error) {
@@ -71,29 +78,36 @@ export const updatePost = async (req: Request<{ id: string }, {}, PostUpdateRequ
     }
 };
 
-export const deletePost = async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<Response | void> => {
+export const deletePost = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-            throw new Error('Invalid post ID - must be a number');
+        const authReq = req as AuthenticatedRequest;
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
         }
 
-        const deleted = await newspostsService.delete(id);
-
-        if (!deleted) {
-            return res.status(404).json({ message: 'Post not found' });
+        const id = req.params.id;
+        if (!id) {
+            return res.status(400).json({ error: 'Post ID is required' });
         }
 
-        return res.status(200).json({ message: 'Post deleted successfully' });
+        await PostsService.deletePost(id, authReq.user.id);
+
+        return res.status(204).send();
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getCategories = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
+    try {
+        const categories = await PostsService.getCategories();
+        return res.status(200).json(categories);
     } catch (error) {
         next(error);
     }
 };
 
 export const triggerError = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        await newspostsService.triggerError();
-    } catch (error) {
-        next(error);
-    }
+    const error = new Error('This is a test error');
+    next(error);
 };

@@ -5,27 +5,52 @@ export enum NewsGenre {
     OTHER = 'Other'
 }
 
-export interface NewPost {
-    id: number;
+export interface Post {
+    id: string;
     title: string;
-    text: string;
-    genre: NewsGenre;
-    isPrivate: boolean;
-    createDate: Date;
+    content: string;
+    excerpt?: string;
+    image?: string;
+    category?: string;
+    tags?: string[];
+    author_id?: string;
+    is_published?: boolean;
+    is_featured?: boolean;
+    views_count?: number;
+    likes_count?: number;
+    slug?: string;
+    meta_title?: string;
+    meta_description?: string;
+    reading_time?: number;
+    created_at: string;
+    updated_at: string;
+    published_at?: string;
 }
 
 export interface PostCreateRequest {
     title: string;
-    text: string;
-    genre: NewsGenre;
-    isPrivate: boolean;
+    content: string;
+    excerpt?: string;
+    image?: string;
+    category?: string;
+    tags?: string[];
+    is_published?: boolean;
+    is_featured?: boolean;
+    meta_title?: string;
+    meta_description?: string;
 }
 
 export interface PostUpdateRequest {
     title?: string;
-    text?: string;
-    genre?: NewsGenre;
-    isPrivate?: boolean;
+    content?: string;
+    excerpt?: string;
+    image?: string;
+    category?: string;
+    tags?: string[];
+    is_published?: boolean;
+    is_featured?: boolean;
+    meta_title?: string;
+    meta_description?: string;
 }
 
 export interface PaginationParams {
@@ -44,8 +69,6 @@ export interface PaginatedResponse<T> {
         size: number;
         total: number;
         totalPages: number;
-        hasNext: boolean;
-        hasPrev: boolean;
     };
 }
 
@@ -58,10 +81,31 @@ export interface ErrorResponse {
 
 export interface Repository<T> {
     getAll(params?: PostQueryParams): Promise<PaginatedResponse<T>>;
-    getById(id: number): Promise<T | null>;
+    getById(id: string): Promise<T | null>;
     create(data: Omit<T, 'id' | 'createDate'>): Promise<T>;
-    update(id: number, data: Partial<T>): Promise<T | null>;
-    delete(id: number): Promise<boolean>;
+    update(id: string, data: Partial<T>): Promise<T | null>;
+    delete(id: string): Promise<boolean>;
 }
 
 export interface Service<T> extends Repository<T> {}
+
+export interface User {
+    id: string;
+    email: string;
+    password_hash: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UserCreateRequest {
+    email: string;
+    password: string;
+}
+
+export interface LoginResponse {
+    token: string;
+    user: {
+        id: string;
+        email: string;
+    };
+}

@@ -8,7 +8,8 @@
     "deps:server": "npm --prefix ./server install",
     "build:server": "npm --prefix ./server run build:server",
     "run:server": "npm --prefix ./server run start:prod",
-    "start:app": "npm run deps:client & npm run build:client & npm run deps:server & npm run build:server & npm run run:server"
+    "start:app": "npm run deps:client & npm run build:client & npm run deps:server & npm run build:server & npm run run:server",
+    "start:dev": "npm --prefix ./client run dev:client & npm --prefix ./server run dev:server"
   },
   "repository": {
     "type": "git",

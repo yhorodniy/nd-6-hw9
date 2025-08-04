@@ -5,16 +5,19 @@ import {
     createPost, 
     updatePost, 
     deletePost,
-    triggerError 
+    getCategories,
 } from '../controller/newspostsController';
+import { authenticateToken, optionalAuth } from '../helpers/auth';
 
 const router = express.Router();
 
-router.get('/', getNewsPosts);
-router.post('/', createPost);
+router.get('/categories', getCategories);
 
-router.get('/:id', getSinglePost);
-router.put('/:id', updatePost);
-router.delete('/:id', deletePost);
+router.get('/', optionalAuth, getNewsPosts);
+router.get('/:id', optionalAuth, getSinglePost);
+
+router.post('/', authenticateToken, createPost);
+router.put('/:id', authenticateToken, updatePost);
+router.delete('/:id', authenticateToken, deletePost);
 
 export default router;

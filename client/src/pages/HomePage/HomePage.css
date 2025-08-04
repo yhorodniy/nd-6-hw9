@@ -19,6 +19,12 @@
     font-size: 2rem;
 }
 
+.home-page__actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .posts-info {
     margin-bottom: 20px;
     text-align: center;

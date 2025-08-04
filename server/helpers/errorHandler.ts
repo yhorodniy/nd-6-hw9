@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ValidationError, NewspostsServiceError } from '../helpers/errors';
+import { ValidationError, NewspostsServiceError, AuthServiceError } from '../helpers/errors';
 import { logger } from '../helpers/logger';
 import { ErrorResponse } from '../types/types';
 
@@ -22,6 +22,28 @@ export const errorHandler = (error: Error, req: Request, res: Response, next: Ne
         }
 
         res.status(400).json(response);
+        return;
+    }
+
+    if (error instanceof AuthServiceError) {
+        logger.warn('Auth service error occurred', {
+            message: error.message,
+            statusCode: error.statusCode,
+            originalError: error.originalError?.message,
+            url: req.url,
+            method: req.method
+        });
+
+        const response: ErrorResponse = {
+            message: error.message,
+            status: error.statusCode
+        };
+
+        if (process.env.NODE_ENV === 'development') {
+            response.stack = error.stack;
+        }
+
+        res.status(error.statusCode).json(response);
         return;
     }
 

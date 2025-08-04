@@ -127,9 +127,10 @@
 }
 
 .checkbox-label {
-    display: flex;
+    display: flex !important;
     flex-direction: row !important;
     align-items: center;
+    justify-content: start;
     gap: 8px;
     margin-bottom: 4px !important;
     cursor: pointer;
@@ -139,6 +140,7 @@
     width: 18px;
     height: 18px;
     margin: 0 !important;
+    width: 80% !important;
     cursor: pointer;
 }
 

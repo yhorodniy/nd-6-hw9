@@ -4,32 +4,36 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { newsAPI } from '../../services/api';
 import type { Post, PostCreateRequest, PostUpdateRequest } from '../../types';
-import { NewsGenre } from '../../types';
 import './PostFormPage.css';
 import Loading from '../../components/Loading/Loading';
 import Error from '../../components/Error/Error';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface FormValues {
     title: string;
-    text: string;
-    genre: string;
-    isPrivate: boolean;
+    content: string;
+    excerpt?: string;
+    category: string;
+    is_published: boolean;
+    is_featured: boolean;
 }
 
 const validationSchema = Yup.object({
     title: Yup.string()
         .required('The title is required')
         .min(1, 'The title must be at least 1 character long')
-        .max(50, 'The title cannot exceed 50 characters'),
-    text: Yup.string()
-        .required('The text is required')
-        .min(1, 'The text must be at least 1 character long')
-        .max(256, 'The text cannot exceed 256 characters'),
-    genre: Yup.string()
-        .required('Genre is required')
-        .oneOf(Object.values(NewsGenre), 'Invalid genre selected'),
-    isPrivate: Yup.boolean()
-        .required('Privacy setting is required'),
+        .max(255, 'The title cannot exceed 255 characters'),
+    content: Yup.string()
+        .required('The content is required')
+        .min(1, 'The content must be at least 1 character long'),
+    excerpt: Yup.string()
+        .max(300, 'The excerpt cannot exceed 300 characters'),
+    category: Yup.string()
+        .required('Category is required'),
+    is_published: Yup.boolean()
+        .required('Publish setting is required'),
+    is_featured: Yup.boolean()
+        .required('Featured setting is required'),
 });
 
 const PostFormPage: React.FC = () => {
@@ -41,17 +45,13 @@ const PostFormPage: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(isEditMode);
     const [error, setError] = useState<string>('');
 
+    const { categories } = useAuth();
+
     useEffect(() => {
         if (isEditMode && id) {
             const fetchPost = async () => {
                 try {
-                    const numericId = parseInt(id, 10);
-                    if (isNaN(numericId)) {
-                        setError('Invalid post ID');
-                        setLoading(false);
-                        return;
-                    }
-                    const fetchedPost = await newsAPI.getPostById(numericId);
+                    const fetchedPost = await newsAPI.getPostById(id);
                     setPost(fetchedPost);
                 } catch (err) {
                     setError('Error fetching post for editing');
@@ -68,25 +68,24 @@ const PostFormPage: React.FC = () => {
     const handleSubmit = async (values: FormValues, { setSubmitting }: any) => {
         try {
             if (isEditMode && id) {
-                const numericId = parseInt(id, 10);
-                if (isNaN(numericId)) {
-                    setError('Invalid post ID');
-                    return;
-                }
                 
                 const updateData: PostUpdateRequest = {};
                 if (values.title !== post?.title) updateData.title = values.title;
-                if (values.text !== post?.text) updateData.text = values.text;
-                if (values.genre !== post?.genre) updateData.genre = values.genre as any;
-                if (values.isPrivate !== post?.isPrivate) updateData.isPrivate = values.isPrivate;
+                if (values.content !== post?.content) updateData.content = values.content;
+                if (values.excerpt !== post?.excerpt) updateData.excerpt = values.excerpt;
+                if (values.category !== post?.category) updateData.category = values.category;
+                if (values.is_published !== post?.is_published) updateData.is_published = values.is_published;
+                if (values.is_featured !== post?.is_featured) updateData.is_featured = values.is_featured;
                 
-                await newsAPI.updatePost(numericId, updateData);
+                await newsAPI.updatePost(id, updateData);
             } else {
                 const createData: PostCreateRequest = {
                     title: values.title,
-                    text: values.text,
-                    genre: values.genre as any,
-                    isPrivate: values.isPrivate,
+                    content: values.content,
+                    excerpt: values.excerpt,
+                    category: values.category,
+                    is_published: values.is_published,
+                    is_featured: values.is_featured,
                 };
                 await newsAPI.createPost(createData);
             }
@@ -102,14 +101,14 @@ const PostFormPage: React.FC = () => {
 
     const initialValues: FormValues = {
         title: post?.title || '',
-        text: post?.text || '',
-        genre: post?.genre || NewsGenre.OTHER,
-        isPrivate: post?.isPrivate || false,
+        content: post?.content || '',
+        excerpt: post?.excerpt || '',
+        category: post?.category || '',
+        is_published: post?.is_published ?? true,
+        is_featured: post?.is_featured ?? false,
     };
 
     if (loading) return <Loading />;
-
-    if (error) return <Error message={error} isShowBack={true} />;
 
     return (
         <div className="post-form-page">
@@ -119,6 +118,8 @@ const PostFormPage: React.FC = () => {
                     ← Back to list
                 </Link>
             </div>
+
+            {error && <Error message={error} />}
 
             <div className="post-form__content">
                 <Formik
@@ -131,14 +132,14 @@ const PostFormPage: React.FC = () => {
                         <Form className="post-form">
                             <div className="form-group">
                                 <label htmlFor="title" className="form-label">
-                                    News Title *
+                                    Post Title *
                                 </label>
                                 <Field
                                     type="text"
                                     id="title"
                                     name="title"
                                     className="form-input"
-                                    placeholder="Enter news title (max 50 characters)"
+                                    placeholder="Enter post title"
                                 />
                                 <ErrorMessage 
                                     name="title" 
@@ -148,42 +149,61 @@ const PostFormPage: React.FC = () => {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="text" className="form-label">
-                                    News Text *
+                                <label htmlFor="excerpt" className="form-label">
+                                    Post Excerpt
                                 </label>
                                 <Field
-                                    as="textarea"
-                                    id="text"
-                                    name="text"
-                                    className="form-textarea"
-                                    placeholder="Enter news text (max 256 characters)"
-                                    rows={6}
+                                    type="text"
+                                    id="excerpt"
+                                    name="excerpt"
+                                    className="form-input"
+                                    placeholder="Brief description of the post (optional)"
                                 />
                                 <ErrorMessage 
-                                    name="text" 
+                                    name="excerpt" 
                                     component="div" 
                                     className="form-error" 
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="genre" className="form-label">
-                                    Genre *
+                                <label htmlFor="content" className="form-label">
+                                    Post Content *
+                                </label>
+                                <Field
+                                    as="textarea"
+                                    id="content"
+                                    name="content"
+                                    className="form-textarea"
+                                    placeholder="Enter post content"
+                                    rows={10}
+                                />
+                                <ErrorMessage 
+                                    name="content" 
+                                    component="div" 
+                                    className="form-error" 
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="category" className="form-label">
+                                    Category *
                                 </label>
                                 <Field
                                     as="select"
-                                    id="genre"
-                                    name="genre"
+                                    id="category"
+                                    name="category"
                                     className="form-select"
                                 >
-                                    <option value="">Select genre</option>
-                                    <option value={NewsGenre.TECHNOLOGY}>Technology</option>
-                                    <option value={NewsGenre.BUSINESS}>Business</option>
-                                    <option value={NewsGenre.HEALTH}>Health</option>
-                                    <option value={NewsGenre.OTHER}>Other</option>
+                                    <option value="">Select category</option>
+                                    {categories.filter(c => c.name !== 'ALL').map((category) => (
+                                        <option key={category.id} value={category.slug}>
+                                            {category.name}
+                                        </option>
+                                    ))}
                                 </Field>
                                 <ErrorMessage 
-                                    name="genre" 
+                                    name="category" 
                                     component="div" 
                                     className="form-error" 
                                 />
@@ -191,18 +211,37 @@ const PostFormPage: React.FC = () => {
 
                             <div className="form-group">
                                 <label className="form-label checkbox-label">
+                                    Publish this post
                                     <Field
                                         type="checkbox"
-                                        name="isPrivate"
+                                        name="is_published"
                                         className="form-checkbox"
                                     />
-                                    Make this post private
                                 </label>
                                 <div className="form-help">
-                                    Private posts are only visible to authorized users
+                                    Published posts are visible to all users
                                 </div>
                                 <ErrorMessage 
-                                    name="isPrivate" 
+                                    name="is_published" 
+                                    component="div" 
+                                    className="form-error" 
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label checkbox-label">
+                                    Feature this post
+                                    <Field
+                                        type="checkbox"
+                                        name="is_featured"
+                                        className="form-checkbox"
+                                    />
+                                </label>
+                                <div className="form-help">
+                                    Featured posts are highlighted on the homepage
+                                </div>
+                                <ErrorMessage 
+                                    name="is_featured" 
                                     component="div" 
                                     className="form-error" 
                                 />

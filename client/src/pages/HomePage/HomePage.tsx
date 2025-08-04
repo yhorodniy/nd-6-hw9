@@ -4,6 +4,7 @@ import { newsAPI } from '../../services/api';
 import PostCard from '../../components/PostCard/PostCard';
 import Pagination from '../../components/Pagination/Pagination';
 import GenreFilter from '../../components/GenreFilter/GenreFilter';
+import UserNav from '../../components/UserNav/UserNav';
 import type { Post, PaginatedResponse } from '../../types';
 import './HomePage.css';
 import Loading from '../../components/Loading/Loading';
@@ -45,26 +46,26 @@ const HomePage: React.FC = () => {
 
     const handleGenreChange = (genre: string | null) => {
         setSelectedGenre(genre);
-        setCurrentPage(0); // Сброс страницы при смене фильтра
+        setCurrentPage(0);
     };
 
-    // Дані вже відфільтровані на сервері
     const displayedPosts = paginatedData?.data || [];
     const pagination = paginatedData?.pagination || null;
 
-    if (loading) return <Loading />
-
     if (error) return <Error message={error} />
 
-    if (!paginatedData) return <Error message="No data available" />
+    if (!loading && !paginatedData) return <Error message="No data available" />
 
     return (
         <div className="home-page">
             <header className="home-page__header">
                 <h1>News</h1>
-                <Link to="/create" className="btn btn--primary">
-                    Add News
-                </Link>
+                <div className="home-page__actions">
+                    <Link to="/create" className="btn btn--primary">
+                        Add News
+                    </Link>
+                    <UserNav />
+                </div>
             </header>
 
             <div className="home-page__content">
@@ -73,7 +74,7 @@ const HomePage: React.FC = () => {
                     onGenreChange={handleGenreChange}
                 />
 
-                {displayedPosts.length === 0 ? (
+                {loading ? <Loading /> : displayedPosts.length === 0 ? (
                     <div className="empty-state">
                         <p>
                             {selectedGenre 
@@ -95,7 +96,10 @@ const HomePage: React.FC = () => {
                         </div>
                         <div className="posts-grid">
                             {displayedPosts.map((post) => (
-                                <PostCard key={post.id} post={post} />
+                                <PostCard 
+                                    key={post.id} 
+                                    post={post}
+                                />
                             ))}
                         </div>
                         {pagination && pagination.totalPages > 1 && (

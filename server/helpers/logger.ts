@@ -1,18 +1,18 @@
 import winston from 'winston';
+import { Request, Response, NextFunction } from 'express';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
-
-const logsDir = path.join(__dirname, '../logs');
+import { SERVER_LOGS } from '../config/paths';
 
 const generalLogTransport = new DailyRotateFile({
-    filename: path.join(logsDir, 'application-%DATE%.log'),
+    filename: path.join(SERVER_LOGS, 'application-%DATE%.log'),
     datePattern: 'YYYY-MM-DD',
     maxFiles: '30d',
     level: 'info'
 });
 
 const errorLogTransport = new DailyRotateFile({
-    filename: path.join(logsDir, 'error-%DATE%.log'),
+    filename: path.join(SERVER_LOGS, 'error-%DATE%.log'),
     datePattern: 'YYYY-MM-DD',
     maxSize: '1m',
     maxFiles: '5d',
@@ -48,3 +48,15 @@ if (process.env.NODE_ENV !== 'production') {
         )
     }));
 }
+
+export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
+    const logData = {
+        method: req.method,
+        url: req.url,
+        body: req.body && Object.keys(req.body).length > 0 ? req.body : undefined
+    };
+
+    logger.info('Incoming request', logData);
+    next();
+};
+

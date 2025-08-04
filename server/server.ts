@@ -4,9 +4,9 @@ import cors from 'cors';
 
 import staticGet from './routes/staticGet';
 import newsPosts from './routes/newsPosts';
-import { requestLogger } from './helpers/requestLogger';
+import authRoutes from './routes/users';
 import { errorHandler } from './helpers/errorHandler';
-import { logger } from './helpers/logger';
+import { logger, requestLogger } from './helpers/logger';
 import { CLIENT_DIST } from './config/paths';
 import { triggerError } from './controller/newspostsController';
 
@@ -25,6 +25,7 @@ app.use(cors({
 
 app.use(requestLogger);
 
+app.use('/api/auth', authRoutes);
 app.use('/api/newsposts', newsPosts);
 app.use('/', staticGet);
 

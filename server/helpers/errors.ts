@@ -13,3 +13,14 @@ export class NewspostsServiceError extends Error {
         Object.setPrototypeOf(this, NewspostsServiceError.prototype);
     }
 }
+
+export class AuthServiceError extends Error {
+    public statusCode: number;
+    
+    constructor(message: string, statusCode: number = 500, public originalError?: Error) {
+        super(message);
+        this.name = 'AuthServiceError';
+        this.statusCode = statusCode;
+        Object.setPrototypeOf(this, AuthServiceError.prototype);
+    }
+}
